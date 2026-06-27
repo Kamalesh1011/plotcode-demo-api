@@ -1,62 +1,43 @@
 """
 Vercel Python Serverless Function — Plotcode Backend Entry Point
 
-This file is the entry point for Vercel's Python runtime.
-It imports the FastAPI app from agents/api.py and wraps it to handle
-the /api path prefix that the frontend uses.
+Uses FastAPI's native app.mount() to mount the agents app under /api prefix.
+This keeps `app` as a FastAPI instance, which Vercel's AST-based detection requires.
 
-Vercel Limitations (handled in this setup):
-  - No WebSocket → frontend uses polling fallback
-  - Read-only filesystem → file uploads stored in MongoDB (not disk)
-  - 10s timeout (free) / 60s (pro) → agent execution runs in background
-  - Cold starts → first request may be slower
+Request flow:
+  Browser: GET /api/auth/login
+  → Vercel rewrite: /api/:path* → /api/index.py
+  → FastAPI receives: /api/auth/login
+  → app.mount("/api", agents_app) → delegates to agents_app with path /auth/login
+  → agents_app matches /auth/login route → returns response
 """
 
 import sys
 import os
-import importlib
+import importlib.util
 
-# Add the agents directory to Python path FIRST so `api` resolves to agents/api.py
-# and not this `api/` directory (Vercel function directory)
+from fastapi import FastAPI
+
+# Create the top-level FastAPI app that Vercel will detect
+app = FastAPI(title="Plotcode API Gateway")
+
+# Add health endpoint at root (for Vercel health checks)
+@app.get("/health")
+async def root_health():
+    return {"status": "ok", "service": "plotcode-vercel"}
+
+# ─── Load the agents FastAPI app ─────────────────────────────────────────────
+# Use importlib to avoid module name conflict between api/ dir and agents/api.py
 AGENTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'agents')
 sys.path.insert(0, AGENTS_DIR)
 
-# Force Python to find agents/api.py, not the api/ directory
-# We use importlib to load from the specific file path
 spec = importlib.util.spec_from_file_location(
-    "plotcode_api",
+    "plotcode_agents_api",
     os.path.join(AGENTS_DIR, "api.py")
 )
-plotcode_api = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(plotcode_api)
+plotcode_agents = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(plotcode_agents)
 
-fastapi_app = plotcode_api.app
-
-
-# ─── ASGI wrapper that strips /api prefix ────────────────────────────────────
-# The frontend calls /api/auth/login, /api/requests, etc.
-# But FastAPI routes are /auth/login, /requests (no /api prefix).
-# This wrapper strips /api from the path before passing to FastAPI.
-
-class PrefixStrippingASGI:
-    """ASGI middleware that strips a path prefix before passing to the app."""
-
-    def __init__(self, app, prefix="/api"):
-        self.app = app
-        self.prefix = prefix
-
-    async def __call__(self, scope, receive, send):
-        # Only modify HTTP requests
-        if scope["type"] == "http":
-            path = scope.get("path", "")
-            # Strip the /api prefix if present
-            if path.startswith(self.prefix):
-                scope["path"] = path[len(self.prefix):] or "/"
-                # Also update raw_path
-                scope["raw_path"] = scope["path"].encode("utf-8")
-
-        return await self.app(scope, receive, send)
-
-
-# Export the wrapped app — Vercel uses the `app` variable as ASGI handler
-app = PrefixStrippingASGI(fastapi_app, prefix="/api")
+# Mount the agents app under /api prefix
+# All routes like /auth/login become accessible at /api/auth/login
+app.mount("/api", plotcode_agents.app)
