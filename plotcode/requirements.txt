@@ -1,0 +1,32 @@
+## Python dependencies for Plotcode — Vercel Serverless Deployment
+## This file is at the project root for Vercel's Python runtime to find
+
+# ─── API Server ───────────────────────────────────────────────
+fastapi>=0.110.0
+pydantic>=2.5.0
+
+# ─── Database ────────────────────────────────────────────────
+pymongo[srv]>=4.6.0
+
+# ─── LLM ─────────────────────────────────────────────────────
+openai>=1.0.0
+
+# ─── Git / GitHub ────────────────────────────────────────────
+GitPython>=3.1.0
+PyGithub>=2.1.0
+
+# ─── HTTP Client ─────────────────────────────────────────────
+requests>=2.31.0
+httpx>=0.25.0
+
+# ─── Utilities ───────────────────────────────────────────────
+python-dotenv>=1.0.0
+structlog>=23.0.0
+
+# ─── Auth ────────────────────────────────────────────────────
+bcrypt>=4.0.0
+python-jose[cryptography]>=3.3.0
+python-multipart>=0.0.6
+
+# Note: uvicorn not needed on Vercel (Vercel handles ASGI serving)
+# Note: python-telegram-bot not needed on Vercel (run bot separately if needed)

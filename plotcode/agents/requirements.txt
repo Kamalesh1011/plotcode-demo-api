@@ -1,0 +1,32 @@
+## Python dependencies for Plotcode agents (production)
+
+# ─── API Server ───────────────────────────────────────────────
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0
+pydantic>=2.5.0
+
+# ─── Database ────────────────────────────────────────────────
+pymongo[srv]>=4.6.0       # MongoDB Atlas driver (includes DNS SRV + TLS)
+
+# ─── LLM ─────────────────────────────────────────────────────
+openai>=1.0.0             # OpenRouter uses OpenAI-compatible API
+
+# ─── Telegram Bot ────────────────────────────────────────────
+python-telegram-bot[job-queue]>=20.0
+
+# ─── Git / GitHub ────────────────────────────────────────────
+GitPython>=3.1.0
+PyGithub>=2.1.0
+
+# ─── HTTP Client ─────────────────────────────────────────────
+requests>=2.31.0
+httpx>=0.25.0
+
+# ─── Utilities ───────────────────────────────────────────────
+python-dotenv>=1.0.0
+structlog>=23.0.0
+
+# ─── Auth ─────────────────────────────────────────────────────
+bcrypt>=4.0.0              # Password hashing (used directly, not via passlib)
+python-jose[cryptography]>=3.3.0  # JWT token encoding/decoding
+python-multipart>=0.0.6    # OAuth form / file upload support

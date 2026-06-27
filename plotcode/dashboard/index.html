@@ -1,0 +1,2243 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Plotcode — AI Delivery Automation</title>
+  <meta name="description" content="AI-assisted end-to-end software delivery automation platform with real-time pipeline visibility, RBAC, and audit trails."/>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    /* ═══════════════════════════════════════════════════════
+       DESIGN SYSTEM — CSS CUSTOM PROPERTIES
+    ═══════════════════════════════════════════════════════ */
+    :root {
+      --bg-base:       #030B14;
+      --bg-panel:      rgba(8, 20, 38, 0.85);
+      --bg-card:       rgba(12, 26, 48, 0.9);
+      --bg-hover:      rgba(124, 58, 237, 0.08);
+      --bg-input:      rgba(15, 30, 55, 0.8);
+
+      --primary:       #7C3AED;
+      --primary-light: #9F67FF;
+      --primary-glow:  rgba(124, 58, 237, 0.35);
+      --accent:        #06B6D4;
+      --accent-glow:   rgba(6, 182, 212, 0.25);
+      --success:       #10B981;
+      --warning:       #F59E0B;
+      --danger:        #EF4444;
+      --info:          #3B82F6;
+
+      --text-primary:  #F0F6FF;
+      --text-secondary: #94A3B8;
+      --text-muted:    #4A5568;
+      --text-code:     #A5F3FC;
+
+      --border:        rgba(255,255,255,0.06);
+      --border-active: rgba(124, 58, 237, 0.5);
+      --border-accent: rgba(6, 182, 212, 0.3);
+
+      --radius-sm:     6px;
+      --radius:        10px;
+      --radius-lg:     16px;
+      --radius-xl:     24px;
+
+      --shadow-sm:     0 1px 3px rgba(0,0,0,0.4);
+      --shadow:        0 4px 20px rgba(0,0,0,0.5);
+      --shadow-glow:   0 0 30px var(--primary-glow);
+      --shadow-accent: 0 0 20px var(--accent-glow);
+
+      --transition:    all 0.2s cubic-bezier(0.4,0,0.2,1);
+      --sidebar-w:     220px;
+      --topbar-h:      56px;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg-base);
+      color: var(--text-primary);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* Animated background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% 10%, rgba(124,58,237,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(6,182,212,0.08) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ═══════════════════════════════════════════════════════
+       SCROLLBAR
+    ═══════════════════════════════════════════════════════ */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(124,58,237,0.4); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+
+    /* ═══════════════════════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════════════════════ */
+    #app { display: flex; height: 100vh; position: relative; z-index: 1; }
+
+    /* ─── Sidebar ─── */
+    #sidebar {
+      width: var(--sidebar-w);
+      background: var(--bg-panel);
+      backdrop-filter: blur(24px);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+      flex-shrink: 0;
+      z-index: 100;
+    }
+
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .brand-text { font-weight: 700; font-size: 15px; letter-spacing: -0.3px; }
+    .brand-sub  { font-size: 10px; color: var(--text-secondary); letter-spacing: 0.5px; }
+
+    .sidebar-nav { flex: 1; padding: 12px 10px; overflow-y: auto; }
+
+    .nav-section-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      padding: 10px 10px 4px;
+      text-transform: uppercase;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      color: var(--text-secondary);
+      font-weight: 500;
+      font-size: 13px;
+      transition: var(--transition);
+      margin-bottom: 2px;
+      position: relative;
+      user-select: none;
+    }
+
+    .nav-item:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    .nav-item.active {
+      background: linear-gradient(90deg, rgba(124,58,237,0.2), rgba(124,58,237,0.05));
+      color: var(--primary-light);
+      border-left: 2px solid var(--primary);
+    }
+
+    .nav-item .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+
+    .nav-badge {
+      margin-left: auto;
+      background: var(--primary);
+      color: white;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 99px;
+      min-width: 18px;
+      text-align: center;
+    }
+
+    .sidebar-footer {
+      padding: 12px 10px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ─── Connection status ─── */
+    .conn-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    .conn-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      transition: var(--transition);
+    }
+    .conn-dot.connected { background: var(--success); box-shadow: 0 0 6px var(--success); animation: pulse-dot 2s infinite; }
+    .conn-dot.error { background: var(--danger); }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.2); }
+    }
+
+    /* ─── Main content ─── */
+    #main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    /* ─── Top Bar ─── */
+    #topbar {
+      height: var(--topbar-h);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      background: var(--bg-panel);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .topbar-left { display: flex; align-items: center; gap: 16px; }
+    .topbar-title { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
+    .topbar-subtitle { font-size: 12px; color: var(--text-secondary); }
+
+    .topbar-right { display: flex; align-items: center; gap: 12px; }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 6px 12px;
+      width: 220px;
+      transition: var(--transition);
+    }
+    .search-box:focus-within { border-color: var(--border-active); box-shadow: 0 0 0 3px var(--primary-glow); }
+    .search-box input { background: none; border: none; outline: none; color: var(--text-primary); font-size: 13px; width: 100%; }
+    .search-box input::placeholder { color: var(--text-muted); }
+
+    /* ─── Content ─── */
+    #content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+    }
+
+    /* ─── Page ─── */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* ═══════════════════════════════════════════════════════
+       COMPONENTS
+    ═══════════════════════════════════════════════════════ */
+
+    /* Glass Card */
+    .card {
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+      transition: var(--transition);
+    }
+    .card:hover { border-color: rgba(124,58,237,0.2); }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(124,58,237,0.4), transparent);
+    }
+
+    .card-title {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    /* Stat Card */
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+      position: relative;
+      overflow: hidden;
+      transition: var(--transition);
+      cursor: default;
+    }
+    .stat-card:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+
+    .stat-icon {
+      font-size: 20px;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .stat-trend {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 99px;
+    }
+    .stat-trend.up   { background: rgba(16,185,129,0.15); color: var(--success); }
+    .stat-trend.warn { background: rgba(245,158,11,0.15); color: var(--warning); }
+
+    /* Gradient stat accents */
+    .stat-card.purple::after { content: ''; position: absolute; right: -10px; top: -10px; width: 80px; height: 80px; background: radial-gradient(circle, rgba(124,58,237,0.15), transparent 70%); }
+    .stat-card.cyan::after   { content: ''; position: absolute; right: -10px; top: -10px; width: 80px; height: 80px; background: radial-gradient(circle, rgba(6,182,212,0.15), transparent 70%); }
+    .stat-card.green::after  { content: ''; position: absolute; right: -10px; top: -10px; width: 80px; height: 80px; background: radial-gradient(circle, rgba(16,185,129,0.15), transparent 70%); }
+    .stat-card.red::after    { content: ''; position: absolute; right: -10px; top: -10px; width: 80px; height: 80px; background: radial-gradient(circle, rgba(239,68,68,0.15), transparent 70%); }
+
+    /* Grid Layouts */
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .grid-12 { display: grid; grid-template-columns: 1fr 2fr; gap: 16px; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 16px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: var(--transition);
+      outline: none;
+      white-space: nowrap;
+      text-decoration: none;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), #5B21B6);
+      color: white;
+      box-shadow: 0 2px 12px rgba(124,58,237,0.4);
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(124,58,237,0.5); }
+    .btn-secondary { background: var(--bg-input); color: var(--text-secondary); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border-active); }
+    .btn-danger { background: rgba(239,68,68,0.15); color: var(--danger); border: 1px solid rgba(239,68,68,0.3); }
+    .btn-success { background: rgba(16,185,129,0.15); color: var(--success); border: 1px solid rgba(16,185,129,0.3); }
+    .btn-icon { width: 32px; height: 32px; padding: 0; justify-content: center; background: var(--bg-input); border: 1px solid var(--border); color: var(--text-secondary); border-radius: var(--radius-sm); }
+    .btn-icon:hover { border-color: var(--border-active); color: var(--primary-light); }
+    .btn-sm { padding: 4px 10px; font-size: 12px; }
+
+    /* Status Badge */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+
+    .badge-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+    }
+
+    /* Priority Badges */
+    .badge-p0 { background: rgba(239,68,68,0.15);  color: #F87171; }
+    .badge-p1 { background: rgba(245,158,11,0.15); color: #FCD34D; }
+    .badge-p2 { background: rgba(59,130,246,0.15); color: #93C5FD; }
+    .badge-p3 { background: rgba(16,185,129,0.15); color: #6EE7B7; }
+
+    /* Status Badges */
+    .status-submitted    { background: rgba(148,163,184,0.1); color: #94A3B8; }
+    .status-approved     { background: rgba(16,185,129,0.1); color: #10B981; }
+    .status-rejected     { background: rgba(239,68,68,0.1); color: #EF4444; }
+    .status-plan_pending_approval { background: rgba(124,58,237,0.1); color: #A78BFA; }
+    .status-plan_approved { background: rgba(124,58,237,0.15); color: var(--primary-light); }
+    .status-ci_running   { background: rgba(245,158,11,0.1); color: #F59E0B; }
+    .status-ci_passed    { background: rgba(16,185,129,0.1); color: #10B981; }
+    .status-ci_failed    { background: rgba(239,68,68,0.1); color: #EF4444; }
+    .status-pr_open      { background: rgba(6,182,212,0.1); color: #06B6D4; }
+    .status-pr_merged    { background: rgba(124,58,237,0.1); color: #A78BFA; }
+    .status-qa_deployed  { background: rgba(245,158,11,0.1); color: #F59E0B; }
+    .status-qa_passed    { background: rgba(16,185,129,0.1); color: #10B981; }
+    .status-qa_failed    { background: rgba(239,68,68,0.1); color: #EF4444; }
+    .status-deployed     { background: rgba(16,185,129,0.12); color: #34D399; }
+    .status-closed       { background: rgba(148,163,184,0.1); color: #64748B; }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    tbody tr {
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      transition: var(--transition);
+      cursor: pointer;
+    }
+    tbody tr:hover { background: rgba(124,58,237,0.06); }
+    tbody td { padding: 12px 14px; font-size: 13px; }
+    tbody td:first-child { font-weight: 500; }
+
+    .req-id {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--accent);
+      background: rgba(6,182,212,0.08);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    /* Section Header */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    /* Filters Row */
+    .filters-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .filter-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 5px 12px;
+      border-radius: 99px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      transition: var(--transition);
+      user-select: none;
+    }
+    .filter-chip:hover, .filter-chip.active {
+      border-color: var(--border-active);
+      background: rgba(124,58,237,0.12);
+      color: var(--primary-light);
+    }
+
+    select.filter-select {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text-secondary);
+      font-size: 12px;
+      padding: 5px 10px;
+      outline: none;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    select.filter-select:focus { border-color: var(--border-active); color: var(--text-primary); }
+
+    /* Pipeline Kanban */
+    .pipeline-track {
+      display: flex;
+      gap: 0;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      position: relative;
+    }
+
+    .pipeline-stage {
+      flex: 1;
+      min-width: 110px;
+      text-align: center;
+      position: relative;
+    }
+
+    .pipeline-stage::after {
+      content: '›';
+      position: absolute;
+      right: -8px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 16px;
+      z-index: 1;
+    }
+    .pipeline-stage:last-child::after { display: none; }
+
+    .stage-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 8px;
+      margin: 0 12px;
+      transition: var(--transition);
+    }
+    .stage-box.has-items { border-color: rgba(124,58,237,0.3); }
+
+    .stage-name {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .stage-count {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text-primary);
+    }
+
+    .stage-icon { font-size: 16px; margin-bottom: 4px; }
+
+    /* Agent Cards */
+    .agent-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+    .agent-card:hover { border-color: rgba(124,58,237,0.25); transform: translateY(-1px); }
+
+    .agent-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .agent-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .agent-name { font-weight: 700; font-size: 14px; margin-bottom: 2px; }
+    .agent-desc { font-size: 12px; color: var(--text-secondary); }
+
+    .confidence-bar {
+      background: rgba(255,255,255,0.05);
+      border-radius: 99px;
+      height: 4px;
+      margin-top: 12px;
+      overflow: hidden;
+    }
+
+    .confidence-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      border-radius: 99px;
+      transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    .confidence-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Metrics Charts */
+    .chart-container {
+      position: relative;
+      height: 200px;
+    }
+
+    /* RBAC Table */
+    .role-select {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-size: 12px;
+      padding: 4px 8px;
+      outline: none;
+      cursor: pointer;
+    }
+    .role-select:focus { border-color: var(--border-active); }
+
+    /* Prompt Explorer */
+    .prompt-entry {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      margin-bottom: 8px;
+      transition: var(--transition);
+      cursor: pointer;
+    }
+    .prompt-entry:hover { border-color: rgba(124,58,237,0.2); }
+
+    .prompt-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      flex-wrap: wrap;
+    }
+
+    .prompt-preview {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-secondary);
+      white-space: pre-wrap;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      background: rgba(0,0,0,0.2);
+      padding: 8px;
+      border-radius: 4px;
+      margin-top: 8px;
+    }
+
+    .token-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      background: rgba(6,182,212,0.1);
+      color: var(--accent);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    /* SLA Progress */
+    .sla-ring {
+      width: 64px;
+      height: 64px;
+      position: relative;
+    }
+    .sla-ring svg { transform: rotate(-90deg); }
+    .sla-ring circle {
+      fill: none;
+      stroke-width: 5;
+      stroke-linecap: round;
+    }
+    .sla-ring .track { stroke: rgba(255,255,255,0.06); }
+    .sla-ring .fill  { stroke: var(--success); transition: stroke-dashoffset 1s ease; }
+    .sla-ring-label {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    /* ─── Slide-in Drawer ─── */
+    #drawer-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 200;
+      backdrop-filter: blur(4px);
+      animation: fadeIn 0.2s ease;
+    }
+
+    #drawer {
+      position: fixed;
+      top: 0;
+      right: -540px;
+      width: 540px;
+      height: 100%;
+      background: var(--bg-panel);
+      backdrop-filter: blur(24px);
+      border-left: 1px solid var(--border);
+      z-index: 201;
+      transition: right 0.35s cubic-bezier(0.4,0,0.2,1);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #drawer.open { right: 0; }
+
+    .drawer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .drawer-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 24px;
+    }
+
+    .drawer-section {
+      margin-bottom: 20px;
+    }
+
+    .drawer-section-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .detail-row {
+      display: flex;
+      gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      font-size: 13px;
+    }
+    .detail-key {
+      color: var(--text-secondary);
+      font-weight: 500;
+      min-width: 140px;
+      flex-shrink: 0;
+    }
+    .detail-val { color: var(--text-primary); word-break: break-all; }
+
+    .plan-content {
+      background: rgba(0,0,0,0.2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-code);
+      white-space: pre-wrap;
+      overflow-x: auto;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .timeline {
+      position: relative;
+      padding-left: 20px;
+    }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 6px;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: var(--border);
+    }
+    .timeline-item {
+      position: relative;
+      padding: 8px 0 8px 20px;
+    }
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -14px;
+      top: 14px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--primary);
+      border: 2px solid var(--bg-base);
+    }
+    .timeline-time { font-size: 10px; color: var(--text-muted); margin-bottom: 2px; }
+    .timeline-text { font-size: 12px; color: var(--text-primary); }
+    .timeline-actor { font-size: 10px; color: var(--accent); }
+
+    /* ─── Toast Notifications ─── */
+    #toast-container {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      box-shadow: var(--shadow);
+      pointer-events: all;
+      animation: slideInRight 0.3s cubic-bezier(0.4,0,0.2,1);
+      max-width: 320px;
+      backdrop-filter: blur(12px);
+    }
+
+    .toast-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+    .toast-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+    .toast-msg { font-size: 12px; color: var(--text-secondary); }
+    .toast-close { margin-left: auto; cursor: pointer; color: var(--text-muted); font-size: 14px; flex-shrink: 0; line-height: 1; }
+    .toast-close:hover { color: var(--text-primary); }
+
+    .toast.success { border-left: 3px solid var(--success); }
+    .toast.info    { border-left: 3px solid var(--info); }
+    .toast.warning { border-left: 3px solid var(--warning); }
+    .toast.error   { border-left: 3px solid var(--danger); }
+
+    /* ─── Loading Skeleton ─── */
+    .skeleton {
+      background: linear-gradient(90deg,
+        rgba(255,255,255,0.04) 0%,
+        rgba(255,255,255,0.08) 50%,
+        rgba(255,255,255,0.04) 100%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: var(--radius-sm);
+    }
+
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* ─── Docs Page ─── */
+    .doc-section { margin-bottom: 24px; }
+    .doc-h2 { font-size: 16px; font-weight: 700; margin-bottom: 8px; color: var(--primary-light); }
+    .doc-h3 { font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text-primary); }
+    .doc-p { font-size: 13px; color: var(--text-secondary); line-height: 1.7; margin-bottom: 8px; }
+    .doc-code { font-family: 'JetBrains Mono', monospace; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; font-size: 11px; color: var(--accent); }
+    .doc-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .doc-table th { text-align: left; padding: 8px 12px; background: rgba(124,58,237,0.1); color: var(--primary-light); font-weight: 600; }
+    .doc-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
+
+    /* ─── Empty State ─── */
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--text-muted);
+    }
+    .empty-state .empty-icon { font-size: 36px; margin-bottom: 12px; display: block; }
+    .empty-state .empty-title { font-size: 14px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; }
+    .empty-state .empty-desc { font-size: 12px; }
+
+    /* ─── Animations ─── */
+    @keyframes fadeIn   { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes slideUp  { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 1200px) { .grid-4 { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 900px)  { .grid-4, .grid-3, .grid-2, .grid-12 { grid-template-columns: 1fr; } }
+
+    /* Misc utils */
+    .mt-4  { margin-top:  4px; }
+    .mt-8  { margin-top:  8px; }
+    .mt-16 { margin-top: 16px; }
+    .mt-24 { margin-top: 24px; }
+    .mb-4  { margin-bottom:  4px; }
+    .mb-8  { margin-bottom:  8px; }
+    .mb-16 { margin-bottom: 16px; }
+    .mb-24 { margin-bottom: 24px; }
+    .flex  { display: flex; }
+    .flex-1 { flex: 1; }
+    .items-center { align-items: center; }
+    .justify-between { justify-content: space-between; }
+    .gap-8  { gap: 8px; }
+    .gap-12 { gap: 12px; }
+    .gap-16 { gap: 16px; }
+    .text-muted { color: var(--text-secondary); }
+    .text-small { font-size: 12px; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  </style>
+</head>
+
+<body>
+<div id="app">
+
+  <!-- ═══════════════ SIDEBAR ═══════════════ -->
+  <aside id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">⚡</div>
+      <div>
+        <div class="brand-text">Plotcode</div>
+        <div class="brand-sub">DELIVERY AUTOMATION</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+      <div class="nav-item active" data-page="overview">
+        <span class="nav-icon">🏠</span> Overview
+      </div>
+      <div class="nav-item" data-page="requests">
+        <span class="nav-icon">📋</span> Requests
+        <span class="nav-badge" id="badge-requests">0</span>
+      </div>
+
+      <div class="nav-section-label">AI Engine</div>
+      <div class="nav-item" data-page="agents">
+        <span class="nav-icon">🤖</span> Agents
+      </div>
+      <div class="nav-item" data-page="prompts">
+        <span class="nav-icon">🧠</span> Prompt Explorer
+      </div>
+
+      <div class="nav-section-label">Analytics</div>
+      <div class="nav-item" data-page="metrics">
+        <span class="nav-icon">📊</span> Metrics
+      </div>
+
+      <div class="nav-section-label">Admin</div>
+      <div class="nav-item" data-page="rbac">
+        <span class="nav-icon">🔐</span> RBAC
+      </div>
+      <div class="nav-item" data-page="docs">
+        <span class="nav-icon">📚</span> Docs & Guide
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="conn-status">
+        <div class="conn-dot" id="conn-dot"></div>
+        <span id="conn-text">Connecting…</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══════════════ MAIN ═══════════════ -->
+  <div id="main">
+
+    <!-- Top Bar -->
+    <header id="topbar">
+      <div class="topbar-left">
+        <div>
+          <div class="topbar-title" id="page-title">Overview</div>
+          <div class="topbar-subtitle" id="page-subtitle">Pipeline health & active requests</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="search-box">
+          <span>🔍</span>
+          <input type="text" id="global-search" placeholder="Search requests…" autocomplete="off"/>
+        </div>
+        <button class="btn btn-primary" onclick="openNewRequestModal()">
+          ➕ New Request
+        </button>
+        <button class="btn-icon btn" onclick="refreshCurrentPage()" title="Refresh">🔄</button>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <div id="content">
+
+      <!-- ══════════ OVERVIEW PAGE ══════════ -->
+      <div class="page active" id="page-overview">
+        <!-- Stats Row -->
+        <div class="grid-4 mb-24">
+          <div class="stat-card purple" id="stat-total">
+            <span class="stat-icon">📦</span>
+            <div class="stat-value" id="stat-total-val">—</div>
+            <div class="stat-label">Total Requests</div>
+          </div>
+          <div class="stat-card cyan" id="stat-active">
+            <span class="stat-icon">⚙️</span>
+            <div class="stat-value" id="stat-active-val">—</div>
+            <div class="stat-label">In Progress</div>
+            <div class="stat-trend up" id="stat-active-trend">live</div>
+          </div>
+          <div class="stat-card green" id="stat-deployed">
+            <span class="stat-icon">🚀</span>
+            <div class="stat-value" id="stat-deployed-val">—</div>
+            <div class="stat-label">Deployed</div>
+          </div>
+          <div class="stat-card red" id="stat-sla">
+            <span class="stat-icon">⏱️</span>
+            <div class="stat-value" id="stat-sla-val">—%</div>
+            <div class="stat-label">SLA Compliance</div>
+          </div>
+        </div>
+
+        <!-- Pipeline Kanban + Recent Activity -->
+        <div class="grid-12">
+          <!-- Pipeline -->
+          <div>
+            <div class="card mb-16">
+              <div class="card-title">Pipeline Flow</div>
+              <div class="pipeline-track" id="pipeline-kanban">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+            <!-- SLA Gauge -->
+            <div class="card">
+              <div class="card-title">SLA Compliance</div>
+              <div class="flex items-center gap-16">
+                <div class="sla-ring">
+                  <svg width="64" height="64" viewBox="0 0 64 64">
+                    <circle class="track" cx="32" cy="32" r="27"/>
+                    <circle class="fill" cx="32" cy="32" r="27"
+                      stroke-dasharray="169.6"
+                      id="sla-ring-fill"
+                      stroke-dashoffset="169.6"/>
+                  </svg>
+                  <div class="sla-ring-label" id="sla-ring-pct">—</div>
+                </div>
+                <div>
+                  <div style="font-size:22px;font-weight:800" id="sla-headline">—%</div>
+                  <div class="text-muted text-small">of requests delivered on time</div>
+                  <div class="text-small mt-4" id="sla-breach-count"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Requests -->
+          <div class="card">
+            <div class="section-header mb-16">
+              <div class="card-title" style="margin:0">Recent Activity</div>
+              <button class="btn btn-secondary btn-sm" onclick="nav('requests')">View all</button>
+            </div>
+            <div id="recent-requests-list">
+              <div class="skeleton" style="height:48px;margin-bottom:8px;border-radius:8px"></div>
+              <div class="skeleton" style="height:48px;margin-bottom:8px;border-radius:8px"></div>
+              <div class="skeleton" style="height:48px;border-radius:8px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════ REQUESTS PAGE ══════════ -->
+      <div class="page" id="page-requests">
+        <div class="section-header">
+          <div class="section-title">Feature Requests</div>
+          <div class="flex gap-8">
+            <button class="btn btn-secondary btn-sm" onclick="exportAudit()">⬇ Export Audit</button>
+            <button class="btn btn-primary btn-sm" onclick="openNewRequestModal()">➕ New Request</button>
+          </div>
+        </div>
+
+        <div class="filters-row">
+          <div class="filter-chip active" data-filter="all" onclick="filterRequests(this, null)">All</div>
+          <div class="filter-chip" data-filter="submitted"    onclick="filterRequests(this,'submitted')">Submitted</div>
+          <div class="filter-chip" data-filter="approved"     onclick="filterRequests(this,'approved')">Approved</div>
+          <div class="filter-chip" data-filter="ci_running"   onclick="filterRequests(this,'ci_running')">CI Running</div>
+          <div class="filter-chip" data-filter="pr_open"      onclick="filterRequests(this,'pr_open')">PR Open</div>
+          <div class="filter-chip" data-filter="deployed"     onclick="filterRequests(this,'deployed')">Deployed</div>
+          <select class="filter-select" onchange="filterByPriority(this.value)">
+            <option value="">All Priorities</option>
+            <option value="P0">P0 Critical</option>
+            <option value="P1">P1 High</option>
+            <option value="P2">P2 Medium</option>
+            <option value="P3">P3 Low</option>
+          </select>
+          <select class="filter-select" onchange="filterByService(this.value)" id="service-filter">
+            <option value="">All Services</option>
+          </select>
+        </div>
+
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Request ID</th>
+                  <th>Title</th>
+                  <th>Priority</th>
+                  <th>Status</th>
+                  <th>Service</th>
+                  <th>Requester</th>
+                  <th>SLA</th>
+                  <th>Created</th>
+                </tr>
+              </thead>
+              <tbody id="requests-tbody">
+                <tr><td colspan="8"><div class="skeleton" style="height:40px;margin:4px 0"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════ AGENTS PAGE ══════════ -->
+      <div class="page" id="page-agents">
+        <div class="section-header">
+          <div class="section-title">AI Agents</div>
+          <div class="text-muted text-small">Confidence scores from last run</div>
+        </div>
+        <div class="grid-3" id="agents-grid">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- ══════════ PROMPTS PAGE ══════════ -->
+      <div class="page" id="page-prompts">
+        <div class="section-header">
+          <div class="section-title">Prompt Explorer</div>
+          <div class="flex gap-8">
+            <select class="filter-select" id="prompt-agent-filter" onchange="loadPrompts()">
+              <option value="">All Agents</option>
+              <option value="analysis_agent">Analysis</option>
+              <option value="coder_agent">Coder</option>
+              <option value="validation_agent">Validation</option>
+              <option value="pr_agent">PR</option>
+              <option value="deployment_agent">Deployment</option>
+              <option value="monitoring_agent">Monitoring</option>
+            </select>
+          </div>
+        </div>
+        <div id="prompts-list">
+          <div class="skeleton" style="height:80px;margin-bottom:8px"></div>
+          <div class="skeleton" style="height:80px;margin-bottom:8px"></div>
+        </div>
+      </div>
+
+      <!-- ══════════ METRICS PAGE ══════════ -->
+      <div class="page" id="page-metrics">
+        <div class="section-header">
+          <div class="section-title">Analytics & Metrics</div>
+        </div>
+        <div class="grid-2 mb-16">
+          <div class="card">
+            <div class="card-title">Request Volume (Last 7 Days)</div>
+            <div class="chart-container">
+              <canvas id="chart-volume"></canvas>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Status Distribution</div>
+            <div class="chart-container">
+              <canvas id="chart-status"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">Priority Breakdown</div>
+            <div class="chart-container">
+              <canvas id="chart-priority"></canvas>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Agent Performance</div>
+            <div id="agent-perf-table">
+              <div class="skeleton" style="height:120px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════ RBAC PAGE ══════════ -->
+      <div class="page" id="page-rbac">
+        <div class="section-header">
+          <div class="section-title">Role-Based Access Control</div>
+        </div>
+
+        <!-- RBAC Permission Matrix -->
+        <div class="card mb-16">
+          <div class="card-title">Permission Matrix</div>
+          <div class="table-wrap">
+            <table class="doc-table">
+              <thead>
+                <tr>
+                  <th>Permission</th>
+                  <th>Admin</th>
+                  <th>Product Owner</th>
+                  <th>Developer</th>
+                  <th>QA Engineer</th>
+                  <th>Requester</th>
+                </tr>
+              </thead>
+              <tbody id="perm-matrix-body">
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Users Table -->
+        <div class="card">
+          <div class="card-title">Users</div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Telegram ID</th>
+                  <th>Role</th>
+                  <th>Active</th>
+                  <th>Joined</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="users-tbody">
+                <tr><td colspan="6"><div class="skeleton" style="height:40px"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════ DOCS PAGE ══════════ -->
+      <div class="page" id="page-docs">
+        <div class="section-header">
+          <div class="section-title">Docs & SDLC Guide</div>
+        </div>
+        <div class="grid-12">
+          <div class="card" style="height:fit-content;position:sticky;top:0">
+            <div class="card-title">On This Page</div>
+            <div style="font-size:13px;color:var(--text-secondary);line-height:2.2">
+              <div><a href="#doc-overview" style="color:inherit;text-decoration:none">→ System Overview</a></div>
+              <div><a href="#doc-flow" style="color:inherit;text-decoration:none">→ Delivery Flow</a></div>
+              <div><a href="#doc-agents" style="color:inherit;text-decoration:none">→ AI Agent Reference</a></div>
+              <div><a href="#doc-rbac" style="color:inherit;text-decoration:none">→ RBAC Guide</a></div>
+              <div><a href="#doc-telegram" style="color:inherit;text-decoration:none">→ Telegram Commands</a></div>
+            </div>
+          </div>
+          <div>
+            <div class="card mb-16" id="doc-overview">
+              <div class="doc-section">
+                <div class="doc-h2">System Overview</div>
+                <div class="doc-p">Plotcode is an AI-assisted end-to-end software delivery automation platform. It connects feature requests (submitted via Telegram) through a 14-stage SDLC pipeline, orchestrated by specialized AI agents, with human-in-the-loop checkpoints at every critical decision.</div>
+                <div class="doc-p">The system is backed by <strong>MongoDB Atlas</strong> (serverless), communicates via a <strong>FastAPI backend</strong>, and provides real-time visibility through this WebSocket-connected dashboard.</div>
+              </div>
+            </div>
+
+            <div class="card mb-16" id="doc-flow">
+              <div class="doc-section">
+                <div class="doc-h2">Delivery Flow (14 Stages)</div>
+                <div id="flow-stages">
+                  <!-- Rendered by JS -->
+                </div>
+              </div>
+            </div>
+
+            <div class="card mb-16" id="doc-agents">
+              <div class="doc-section">
+                <div class="doc-h2">AI Agent Reference</div>
+                <div class="doc-p">Each agent has a versioned system prompt stored in <code class="doc-code">ai_prompt_log</code>.</div>
+                <table class="doc-table">
+                  <thead><tr><th>Agent</th><th>Role</th><th>Input</th><th>Output</th><th>Model</th></tr></thead>
+                  <tbody>
+                    <tr><td>Analysis</td><td>Repo analysis & plan generation</td><td>Feature request + codebase</td><td>Implementation plan + confidence score</td><td>GPT-4o</td></tr>
+                    <tr><td>Coder</td><td>Code generation & branch management</td><td>Approved plan</td><td>Feature branch with code changes</td><td>GPT-4o</td></tr>
+                    <tr><td>Validation</td><td>CI failure diagnosis & auto-fix</td><td>CI logs + codebase</td><td>Fixed code, up to 3 retries</td><td>GPT-4o</td></tr>
+                    <tr><td>PR</td><td>Pull request creation & review response</td><td>Branch diff + plan</td><td>Structured PR with evidence</td><td>GPT-4o</td></tr>
+                    <tr><td>Deployment</td><td>Staging & prod deployment triggers</td><td>Merged SHA</td><td>Environment deployment</td><td>N/A</td></tr>
+                    <tr><td>Monitoring</td><td>Health checks, SLA, retrospective</td><td>Deployment URL</td><td>Health report + ticket closure</td><td>N/A</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card mb-16" id="doc-rbac">
+              <div class="doc-section">
+                <div class="doc-h2">RBAC Guide</div>
+                <div class="doc-p">Access is controlled via Telegram user IDs. Roles are assigned in the RBAC page or via Telegram <code class="doc-code">/setrole</code> command.</div>
+                <table class="doc-table">
+                  <thead><tr><th>Role</th><th>Can Do</th></tr></thead>
+                  <tbody>
+                    <tr><td><strong>admin</strong></td><td>Everything — full platform control</td></tr>
+                    <tr><td><strong>product_owner</strong></td><td>Approve/reject requests & plans, QA validation</td></tr>
+                    <tr><td><strong>developer</strong></td><td>Approve plans, merge PRs</td></tr>
+                    <tr><td><strong>qa_engineer</strong></td><td>QA approve/fail</td></tr>
+                    <tr><td><strong>requester</strong></td><td>Submit feature requests only</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card" id="doc-telegram">
+              <div class="doc-section">
+                <div class="doc-h2">Telegram Bot Commands</div>
+                <table class="doc-table">
+                  <thead><tr><th>Command</th><th>Description</th><th>Roles</th></tr></thead>
+                  <tbody>
+                    <tr><td><code class="doc-code">/request</code></td><td>Submit a new feature request (guided)</td><td>All</td></tr>
+                    <tr><td><code class="doc-code">/status REQ-ID</code></td><td>Check request status</td><td>All</td></tr>
+                    <tr><td><code class="doc-code">/list</code></td><td>List open requests</td><td>admin, pm, dev</td></tr>
+                    <tr><td><code class="doc-code">/rbac</code></td><td>View role assignments</td><td>admin</td></tr>
+                    <tr><td><code class="doc-code">/setrole @user role</code></td><td>Change user role</td><td>admin</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ═══════════ DRAWER ═══════════ -->
+<div id="drawer-overlay" onclick="closeDrawer()"></div>
+<div id="drawer">
+  <div class="drawer-header">
+    <div>
+      <div style="font-size:16px;font-weight:700" id="drawer-title">Request Details</div>
+      <div class="text-muted text-small" id="drawer-subtitle"></div>
+    </div>
+    <button class="btn-icon btn" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="drawer-body" id="drawer-body">
+  </div>
+</div>
+
+<!-- ═══════════ TOAST CONTAINER ═══════════ -->
+<div id="toast-container"></div>
+
+<!-- ═══════════ NEW REQUEST MODAL ═══════════ -->
+<div id="modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:300;backdrop-filter:blur(4px);animation:fadeIn 0.2s ease">
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:500px;max-width:calc(100vw - 32px);background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius-xl);padding:28px;backdrop-filter:blur(24px);max-height:90vh;overflow-y:auto;">
+    <div class="flex items-center justify-between mb-24">
+      <div style="font-size:18px;font-weight:700">Submit Feature Request</div>
+      <button class="btn-icon btn" onclick="closeModal()">✕</button>
+    </div>
+    <form id="new-request-form" onsubmit="submitNewRequest(event)">
+      <div style="margin-bottom:16px">
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px">Title *</label>
+        <input type="text" id="nr-title" required placeholder="e.g. Add rate limiting to /api/users" style="width:100%;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);padding:10px 12px;font-size:13px;outline:none;transition:var(--transition)" onfocus="this.style.borderColor='var(--border-active)'" onblur="this.style.borderColor='var(--border)'"/>
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px">Business Need *</label>
+        <textarea id="nr-business" required rows="2" placeholder="Why is this needed?" style="width:100%;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);padding:10px 12px;font-size:13px;outline:none;resize:vertical;transition:var(--transition)" onfocus="this.style.borderColor='var(--border-active)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px">Expected Behavior *</label>
+        <textarea id="nr-behavior" required rows="2" placeholder="What should it do?" style="width:100%;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);padding:10px 12px;font-size:13px;outline:none;resize:vertical;transition:var(--transition)" onfocus="this.style.borderColor='var(--border-active)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+      </div>
+      <div class="grid-2" style="margin-bottom:16px;gap:12px">
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px">Priority</label>
+          <select id="nr-priority" style="width:100%;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);padding:10px 12px;font-size:13px;outline:none">
+            <option value="P3">P3 — Low</option>
+            <option value="P2" selected>P2 — Medium</option>
+            <option value="P1">P1 — High</option>
+            <option value="P0">P0 — Critical</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px">Service</label>
+          <select id="nr-service" style="width:100%;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);padding:10px 12px;font-size:13px;outline:none">
+            <option value="demo-api">demo-api</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-bottom:24px">
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px">Your Name *</label>
+        <input type="text" id="nr-name" required placeholder="Your name" style="width:100%;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);padding:10px 12px;font-size:13px;outline:none;transition:var(--transition)" onfocus="this.style.borderColor='var(--border-active)'" onblur="this.style.borderColor='var(--border)'"/>
+      </div>
+      <div class="flex gap-8 justify-between">
+        <button type="button" class="btn btn-secondary flex-1" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary flex-1" id="submit-btn">
+          Submit Request 🚀
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   PLOTCODE DASHBOARD — Production SPA
+   WebSocket real-time, Chart.js metrics, RBAC, Prompt Explorer
+═══════════════════════════════════════════════════════════════ */
+
+const API = window.location.origin;
+const WS_URL = (window.location.protocol === 'https:' ? 'wss:' : 'ws:')
+             + '//' + window.location.host + '/ws/events';
+
+let ws = null;
+let wsReconnectTimer = null;
+let allRequests = [];
+let currentFilter = null;
+let currentPriorityFilter = '';
+let currentServiceFilter = '';
+let metricsCharts = {};
+
+/* ─── Navigation ─── */
+const PAGES = {
+  overview: { title: 'Overview',        sub: 'Pipeline health & active requests' },
+  requests: { title: 'Feature Requests', sub: 'All delivery requests and their status' },
+  agents:   { title: 'AI Agents',        sub: 'Agent health, confidence, and last run' },
+  prompts:  { title: 'Prompt Explorer',  sub: 'Every LLM call — prompt, response, tokens' },
+  metrics:  { title: 'Analytics',        sub: 'Pipeline throughput, SLA, performance' },
+  rbac:     { title: 'RBAC',             sub: 'Role-based access control & user management' },
+  docs:     { title: 'Docs & Guide',     sub: 'SDLC guide, agent reference, Telegram commands' },
+};
+
+function nav(pageId) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+  const pg = document.getElementById('page-' + pageId);
+  if (pg) pg.classList.add('active');
+
+  const navEl = document.querySelector(`[data-page="${pageId}"]`);
+  if (navEl) navEl.classList.add('active');
+
+  const info = PAGES[pageId] || {};
+  document.getElementById('page-title').textContent = info.title || pageId;
+  document.getElementById('page-subtitle').textContent = info.sub || '';
+
+  switch (pageId) {
+    case 'overview': loadOverview(); break;
+    case 'requests': loadRequests(); break;
+    case 'agents':   loadAgents(); break;
+    case 'prompts':  loadPrompts(); break;
+    case 'metrics':  loadMetrics(); break;
+    case 'rbac':     loadRBAC(); break;
+    case 'docs':     renderDocs(); break;
+  }
+}
+
+document.querySelectorAll('.nav-item').forEach(el => {
+  el.addEventListener('click', () => nav(el.dataset.page));
+});
+
+function refreshCurrentPage() {
+  const active = document.querySelector('.nav-item.active');
+  if (active) nav(active.dataset.page);
+}
+
+/* ─── WebSocket ─── */
+function connectWS() {
+  if (ws && ws.readyState === WebSocket.OPEN) return;
+  clearTimeout(wsReconnectTimer);
+
+  ws = new WebSocket(WS_URL);
+
+  ws.onopen = () => {
+    setConnStatus(true);
+    toast('info', '📡 Connected', 'Real-time updates active');
+  };
+
+  ws.onmessage = (evt) => {
+    let event;
+    try { event = JSON.parse(evt.data); } catch { return; }
+    if (event.type === 'ping') return;
+    handleEvent(event);
+  };
+
+  ws.onclose = () => {
+    setConnStatus(false);
+    wsReconnectTimer = setTimeout(connectWS, 4000);
+  };
+
+  ws.onerror = () => {
+    setConnStatus(false, true);
+  };
+}
+
+function handleEvent(event) {
+  const { type, payload } = event;
+  const reqId = payload?.request_id;
+
+  // Update badge
+  if (type.startsWith('request.')) refreshBadge();
+
+  // Show toast
+  const toastMap = {
+    'request.created':        ['info',    '📋 New Request',  `${reqId} submitted`],
+    'request.approved':       ['success', '✅ Approved',     `${reqId} approved for development`],
+    'request.rejected':       ['warning', '❌ Rejected',     `${reqId} was rejected`],
+    'agent.plan_generated':   ['info',    '🧠 Plan Ready',   `${reqId} — confidence: ${payload?.confidence}%`],
+    'ci.passed':              ['success', '✅ CI Passed',    `${reqId} all checks green`],
+    'ci.failed':              ['error',   '❌ CI Failed',    `${reqId} CI failure detected`],
+    'agent.pr_created':       ['info',    '🔀 PR Created',   `${reqId} pull request opened`],
+    'deploy.prod_deployed':   ['success', '🚀 Deployed!',    `${reqId} live in production`],
+    'sla.breached':           ['error',   '⏰ SLA Breached', `${reqId} — ${payload?.priority}`],
+    'request.closed':         ['success', '🏁 Closed',       `${reqId} v${payload?.release_version}`],
+  };
+
+  const t = toastMap[type];
+  if (t) toast(t[0], t[1], t[2]);
+
+  // Refresh active page
+  const activeNav = document.querySelector('.nav-item.active');
+  if (activeNav) {
+    const page = activeNav.dataset.page;
+    if (page === 'overview') loadOverview();
+    if (page === 'requests') loadRequests();
+  }
+}
+
+function setConnStatus(connected, error = false) {
+  const dot  = document.getElementById('conn-dot');
+  const text = document.getElementById('conn-text');
+  dot.className  = 'conn-dot' + (connected ? ' connected' : error ? ' error' : '');
+  text.textContent = connected ? 'Live' : error ? 'Error' : 'Reconnecting…';
+}
+
+/* ─── Overview ─── */
+async function loadOverview() {
+  const [metricsRes, reqsRes] = await Promise.all([
+    apiFetch('/metrics'),
+    apiFetch('/requests?limit=8'),
+  ]);
+
+  if (metricsRes) {
+    document.getElementById('stat-total-val').textContent   = metricsRes.total   ?? '—';
+    document.getElementById('stat-active-val').textContent  = metricsRes.active  ?? '—';
+    document.getElementById('stat-deployed-val').textContent= metricsRes.deployed ?? '—';
+
+    const sla = metricsRes.sla_compliance_pct ?? 0;
+    document.getElementById('stat-sla-val').textContent = sla + '%';
+    document.getElementById('sla-headline').textContent  = sla + '%';
+    document.getElementById('sla-ring-pct').textContent  = sla + '%';
+
+    const circ = 169.6;
+    const offset = circ - (sla / 100) * circ;
+    document.getElementById('sla-ring-fill').style.strokeDashoffset = offset;
+    document.getElementById('sla-ring-fill').style.stroke =
+      sla >= 90 ? 'var(--success)' : sla >= 70 ? 'var(--warning)' : 'var(--danger)';
+
+    document.getElementById('sla-breach-count').textContent =
+      metricsRes.sla_breached > 0 ? `⚠️ ${metricsRes.sla_breached} breached` : '✅ No breaches';
+
+    // Badge
+    refreshBadge(metricsRes.active);
+
+    // Pipeline Kanban
+    renderPipeline(metricsRes.pipeline_stages || []);
+  }
+
+  if (reqsRes) {
+    allRequests = reqsRes.requests || [];
+    renderRecentRequests(allRequests.slice(0, 6));
+  }
+}
+
+function renderPipeline(stages) {
+  const STAGE_ORDER = [
+    { key: 'submitted',             icon: '📋', label: 'Submitted' },
+    { key: 'approved',              icon: '✅', label: 'Approved' },
+    { key: 'plan_pending_approval', icon: '🧠', label: 'Planning' },
+    { key: 'plan_approved',         icon: '✅', label: 'Plan OK' },
+    { key: 'ci_running',            icon: '⚙️', label: 'CI' },
+    { key: 'pr_open',               icon: '🔀', label: 'PR Open' },
+    { key: 'qa_deployed',           icon: '🧪', label: 'QA' },
+    { key: 'deployed',              icon: '🚀', label: 'Prod' },
+  ];
+
+  const countMap = {};
+  (stages || []).forEach(s => { countMap[s.status] = s.count; });
+
+  const kanban = document.getElementById('pipeline-kanban');
+  kanban.innerHTML = STAGE_ORDER.map(s => {
+    const count = countMap[s.key] || 0;
+    return `
+      <div class="pipeline-stage">
+        <div class="stage-box ${count > 0 ? 'has-items' : ''}">
+          <div class="stage-icon">${s.icon}</div>
+          <div class="stage-name">${s.label}</div>
+          <div class="stage-count">${count}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderRecentRequests(reqs) {
+  const el = document.getElementById('recent-requests-list');
+  if (!reqs || reqs.length === 0) {
+    el.innerHTML = emptyState('📭', 'No requests yet', 'Submit your first feature request above.');
+    return;
+  }
+  el.innerHTML = reqs.map(r => `
+    <div class="detail-row" onclick="openDrawer('${r.request_id}')" style="cursor:pointer;border-radius:var(--radius);padding:10px 12px;margin-bottom:6px;border:1px solid var(--border);background:rgba(255,255,255,0.02);transition:var(--transition)" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
+      <div style="flex:1;min-width:0">
+        <div class="flex items-center gap-8 mb-4">
+          <span class="req-id">${r.request_id}</span>
+          ${priorityBadge(r.priority)}
+        </div>
+        <div class="truncate" style="font-weight:500;font-size:13px">${escHtml(r.title)}</div>
+      </div>
+      <div>${statusBadge(r.status)}</div>
+    </div>`).join('');
+}
+
+/* ─── Requests ─── */
+async function loadRequests() {
+  let url = '/requests?limit=200';
+  if (currentFilter) url += `&status=${currentFilter}`;
+  if (currentPriorityFilter) url += `&priority=${currentPriorityFilter}`;
+  if (currentServiceFilter) url += `&service=${currentServiceFilter}`;
+
+  const data = await apiFetch(url);
+  if (!data) return;
+
+  allRequests = data.requests || [];
+  renderRequestsTable(allRequests);
+
+  // Populate service filter
+  const services = [...new Set(allRequests.map(r => r.affected_service).filter(Boolean))];
+  const sf = document.getElementById('service-filter');
+  sf.innerHTML = '<option value="">All Services</option>' +
+    services.map(s => `<option value="${s}">${s}</option>`).join('');
+}
+
+function renderRequestsTable(reqs) {
+  const tbody = document.getElementById('requests-tbody');
+  if (!reqs || reqs.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8">${emptyState('📭', 'No requests found', 'Try clearing your filters.')}</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = reqs.map(r => `
+    <tr onclick="openDrawer('${r.request_id}')">
+      <td><span class="req-id">${r.request_id}</span></td>
+      <td><span class="truncate" style="max-width:200px;display:block">${escHtml(r.title)}</span></td>
+      <td>${priorityBadge(r.priority)}</td>
+      <td>${statusBadge(r.status)}</td>
+      <td><span class="text-muted text-small">${r.affected_service || '—'}</span></td>
+      <td><span class="text-muted text-small">${r.requester_name || '—'}</span></td>
+      <td>${slaIndicator(r.sla_deadline, r.status)}</td>
+      <td><span class="text-muted text-small">${relativeTime(r.created_at)}</span></td>
+    </tr>`).join('');
+}
+
+function filterRequests(el, status) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  currentFilter = status;
+  loadRequests();
+}
+
+function filterByPriority(val) { currentPriorityFilter = val; loadRequests(); }
+function filterByService(val)   { currentServiceFilter  = val; loadRequests(); }
+
+/* ─── Agents ─── */
+async function loadAgents() {
+  const data = await apiFetch('/agents/status');
+  const grid = document.getElementById('agents-grid');
+  if (!data) { grid.innerHTML = ''; return; }
+
+  const AGENT_META = {
+    analysis:   { icon: '🧠', desc: 'Repo analysis & implementation planning', color: 'var(--primary)' },
+    coding:     { icon: '💻', desc: 'Code generation & branch management',     color: 'var(--accent)' },
+    validation: { icon: '🔬', desc: 'CI failure diagnosis & auto-fix loop',    color: 'var(--warning)' },
+    pr:         { icon: '🔀', desc: 'Pull request creation & review response', color: 'var(--info)' },
+    deployment: { icon: '🚀', desc: 'Staging & production deployment',         color: 'var(--success)' },
+    monitoring: { icon: '📡', desc: 'Health checks, SLA tracking, retrospective', color: 'var(--danger)' },
+  };
+
+  grid.innerHTML = (data.agents || []).map(a => {
+    const meta = AGENT_META[a.name] || { icon: '🤖', desc: '', color: 'var(--primary)' };
+    const conf = a.avg_confidence != null ? Math.round(a.avg_confidence) : null;
+    const status_color = a.status === 'ready' ? 'var(--success)' : 'var(--warning)';
+
+    return `
+    <div class="agent-card">
+      <div class="agent-header">
+        <div>
+          <div class="agent-icon" style="background:linear-gradient(135deg,${meta.color},var(--accent))">${meta.icon}</div>
+        </div>
+        <div>
+          <span class="badge" style="background:rgba(16,185,129,0.1);color:${status_color};font-size:10px">● ${a.status}</span>
+        </div>
+      </div>
+      <div class="agent-name">${a.name.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())} Agent</div>
+      <div class="agent-desc mb-8">${meta.desc}</div>
+      ${a.last_run_at ? `<div class="text-small text-muted">Last run ${relativeTime(a.last_run_at)}</div>` : '<div class="text-small text-muted">No runs yet</div>'}
+      ${a.model ? `<div class="text-small" style="font-family:var(--font-mono);color:var(--accent);margin-top:4px;font-size:10px">${a.model}</div>` : ''}
+      ${conf != null ? `
+        <div class="confidence-bar mt-8">
+          <div class="confidence-fill" style="width:${conf}%"></div>
+        </div>
+        <div class="confidence-label">
+          <span>Confidence</span>
+          <span style="color:${conf >= 80 ? 'var(--success)' : conf >= 60 ? 'var(--warning)' : 'var(--danger)'}">${conf}%</span>
+        </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+/* ─── Prompts ─── */
+async function loadPrompts() {
+  const agentFilter = document.getElementById('prompt-agent-filter').value;
+  let url = '/prompts?limit=50';
+  if (agentFilter) url += `&agent_name=${agentFilter}`;
+
+  const data = await apiFetch(url);
+  const list = document.getElementById('prompts-list');
+  if (!data || !data.logs.length) {
+    list.innerHTML = emptyState('🧠', 'No prompts logged', 'Prompts appear after agents run.');
+    return;
+  }
+
+  list.innerHTML = data.logs.map(p => {
+    const conf = p.confidence_score != null ? `<span class="badge" style="background:rgba(16,185,129,0.1);color:var(--success)">${Math.round(p.confidence_score)}% confidence</span>` : '';
+    return `
+    <div class="prompt-entry">
+      <div class="prompt-meta">
+        <span class="badge status-approved">${p.agent_name}</span>
+        <span class="token-pill">↑${p.tokens_input || 0} ↓${p.tokens_output || 0} tokens</span>
+        <span class="token-pill">${p.latency_ms || 0}ms</span>
+        ${conf}
+        <span class="text-muted text-small" style="margin-left:auto">${relativeTime(p.created_at)}</span>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">
+        <span class="req-id">${p.request_id}</span>
+        ${p.prompt_version ? `<span class="token-pill" style="margin-left:6px">${p.prompt_version}</span>` : ''}
+      </div>
+      <div class="prompt-preview">${escHtml((p.prompt_preview || '').trim())}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ─── Metrics ─── */
+async function loadMetrics() {
+  const m = await apiFetch('/metrics');
+  if (!m) return;
+
+  // Destroy existing charts
+  Object.values(metricsCharts).forEach(c => c.destroy());
+  metricsCharts = {};
+
+  const chartDefaults = {
+    plugins: { legend: { labels: { color: '#94A3B8', font: { family: 'Inter', size: 11 } } } },
+    scales: {
+      x: { ticks: { color: '#4A5568' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+      y: { ticks: { color: '#4A5568' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+    }
+  };
+
+  // Volume chart
+  const vol7d = m.volume_7d || [];
+  metricsCharts.volume = new Chart(document.getElementById('chart-volume'), {
+    type: 'bar',
+    data: {
+      labels: vol7d.map(v => v.date),
+      datasets: [{
+        label: 'Requests',
+        data: vol7d.map(v => v.count),
+        backgroundColor: 'rgba(124,58,237,0.5)',
+        borderColor: 'rgba(124,58,237,0.9)',
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: { ...chartDefaults, responsive: true, maintainAspectRatio: false }
+  });
+
+  // Status chart
+  const stages = m.pipeline_stages || [];
+  metricsCharts.status = new Chart(document.getElementById('chart-status'), {
+    type: 'doughnut',
+    data: {
+      labels: stages.map(s => s.status),
+      datasets: [{
+        data: stages.map(s => s.count),
+        backgroundColor: [
+          'rgba(124,58,237,0.7)','rgba(6,182,212,0.7)','rgba(16,185,129,0.7)',
+          'rgba(245,158,11,0.7)','rgba(239,68,68,0.7)','rgba(59,130,246,0.7)',
+          'rgba(168,85,247,0.7)','rgba(52,211,153,0.7)',
+        ],
+        borderWidth: 0,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'right', labels: { color: '#94A3B8', font: { size: 11 } } } }
+    }
+  });
+
+  // Priority chart
+  const priorities = m.priority_distribution || [];
+  const PCOLS = { P0: '#EF4444', P1: '#F59E0B', P2: '#3B82F6', P3: '#10B981' };
+  metricsCharts.priority = new Chart(document.getElementById('chart-priority'), {
+    type: 'bar',
+    data: {
+      labels: priorities.map(p => p.priority),
+      datasets: [{
+        label: 'Count',
+        data: priorities.map(p => p.count),
+        backgroundColor: priorities.map(p => PCOLS[p.priority] || '#94A3B8'),
+        borderRadius: 4,
+      }]
+    },
+    options: { ...chartDefaults, responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+  });
+
+  // Agent Performance Table
+  const perf = m.agent_performance || [];
+  const perfEl = document.getElementById('agent-perf-table');
+  if (perf.length === 0) {
+    perfEl.innerHTML = emptyState('🤖', 'No agent runs yet', '');
+  } else {
+    perfEl.innerHTML = `
+      <table class="doc-table">
+        <thead><tr><th>Agent</th><th>Calls</th><th>Tokens In</th><th>Avg Latency</th><th>Success</th><th>Avg Conf.</th></tr></thead>
+        <tbody>${perf.map(a => `
+          <tr>
+            <td>${a._id}</td>
+            <td>${a.total_calls}</td>
+            <td>${(a.total_tokens_in || 0).toLocaleString()}</td>
+            <td>${Math.round(a.avg_latency_ms || 0)}ms</td>
+            <td>${Math.round((a.success_rate || 0) * 100)}%</td>
+            <td>${a.avg_confidence ? Math.round(a.avg_confidence) + '%' : '—'}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+  }
+}
+
+/* ─── RBAC ─── */
+async function loadRBAC() {
+  const PERMS = [
+    'submit_request','approve_request','reject_request',
+    'approve_plan','reject_plan','merge_pr',
+    'approve_qa','fail_qa','approve_prod','manage_users'
+  ];
+  const ROLES = ['admin','product_owner','developer','qa_engineer','requester'];
+  const MATRIX = {
+    admin:         new Set(['*']),
+    product_owner: new Set(['submit_request','approve_request','reject_request','approve_plan','reject_plan','approve_qa']),
+    developer:     new Set(['submit_request','approve_plan','reject_plan','merge_pr']),
+    qa_engineer:   new Set(['submit_request','approve_qa','fail_qa']),
+    requester:     new Set(['submit_request']),
+  };
+
+  const matBody = document.getElementById('perm-matrix-body');
+  matBody.innerHTML = PERMS.map(perm => `
+    <tr>
+      <td style="font-family:var(--font-mono);font-size:11px">${perm}</td>
+      ${ROLES.map(role => {
+        const has = MATRIX[role].has('*') || MATRIX[role].has(perm);
+        return `<td style="text-align:center">${has ? '✅' : '<span style="color:var(--text-muted)">—</span>'}</td>`;
+      }).join('')}
+    </tr>`).join('');
+
+  const data = await apiFetch('/users');
+  const tbody = document.getElementById('users-tbody');
+  const users = data?.users || [];
+
+  if (!users.length) {
+    tbody.innerHTML = `<tr><td colspan="6">${emptyState('👥', 'No users yet', 'Users appear when they interact with the Telegram bot.')}</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = users.map(u => `
+    <tr>
+      <td style="font-weight:600">${escHtml(u.name || '—')}</td>
+      <td><span class="req-id">${u.telegram_id || '—'}</span></td>
+      <td>
+        <select class="role-select" onchange="updateRole('${u.telegram_id}', this.value)">
+          ${['admin','product_owner','developer','qa_engineer','requester'].map(r =>
+            `<option value="${r}" ${u.role === r ? 'selected' : ''}>${r}</option>`
+          ).join('')}
+        </select>
+      </td>
+      <td>${u.is_active ? '<span style="color:var(--success)">●</span>' : '<span style="color:var(--danger)">●</span>'}</td>
+      <td class="text-small text-muted">${relativeTime(u.created_at)}</td>
+      <td><button class="btn btn-secondary btn-sm" onclick="openUserDrawer('${u.telegram_id}')">View</button></td>
+    </tr>`).join('');
+}
+
+async function updateRole(telegramId, newRole) {
+  const res = await fetch(`${API}/users/${telegramId}/role`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role: newRole })
+  });
+  if (res.ok) toast('success', '✅ Role Updated', `${telegramId} is now ${newRole}`);
+  else toast('error', '❌ Update Failed', 'Could not update role.');
+}
+
+/* ─── Docs ─── */
+function renderDocs() {
+  const FLOW_STAGES = [
+    { n: 1,  icon: '📝', title: 'Feature Request Submission',       who: 'Human',  desc: 'User submits via Telegram /request with business need, priority, and expected behavior.' },
+    { n: 2,  icon: '📋', title: 'Request Intake & Tracking',        who: 'AI',     desc: 'Auto-created in MongoDB with unique REQ-YYYY-NNNN ID, SLA deadline set by priority.' },
+    { n: 3,  icon: '👤', title: 'Initial Human Review',             who: 'Human',  desc: 'PM/Admin approves or rejects via Telegram inline button. RBAC enforced.' },
+    { n: 4,  icon: '🧠', title: 'AI Repository Analysis',           who: 'AI',     desc: 'Analysis agent clones repo, reads codebase, generates implementation plan with confidence score.' },
+    { n: 5,  icon: '👤', title: 'Plan Approval',                    who: 'Human',  desc: 'Developer reviews and approves/rejects the technical plan before any code changes.' },
+    { n: 6,  icon: '💻', title: 'Branch Creation & Code Changes',   who: 'AI',     desc: 'Coder agent creates feature branch, applies code changes, writes tests.' },
+    { n: 7,  icon: '⚙️', title: 'Automated Validation (CI)',        who: 'AI+CI',  desc: 'GitHub Actions runs lint, tests, security scan. Validation agent auto-fixes up to 3 times.' },
+    { n: 8,  icon: '🔀', title: 'Pull Request Creation',            who: 'AI',     desc: 'PR agent opens PR with summary, diff, risk notes, rollback plan, and request ID link.' },
+    { n: 9,  icon: '👤', title: 'Human Code Review',                who: 'Human',  desc: 'Reviewer(s) review PR. AI responds to comments and applies fixes. Merge is human-only.' },
+    { n: 10, icon: '🧪', title: 'QA Deployment',                    who: 'AI',     desc: 'After merge, deployment agent triggers staging environment deploy.' },
+    { n: 11, icon: '👤', title: 'Human QA Validation',              who: 'Human',  desc: 'Requester or QA owner validates feature. Can send back for fixes.' },
+    { n: 12, icon: '👤', title: 'Production Approval',              who: 'Human',  desc: 'Explicit approval required from responsible owner via Telegram.' },
+    { n: 13, icon: '🚀', title: 'Production Deployment & Monitoring', who: 'AI',   desc: 'Deployment agent deploys to prod. Monitoring agent tracks health, logs, alerts.' },
+    { n: 14, icon: '🏁', title: 'Closure',                          who: 'AI',     desc: 'Ticket closed with version, PR link, deploy timestamp, and retrospective summary.' },
+  ];
+
+  const el = document.getElementById('flow-stages');
+  el.innerHTML = FLOW_STAGES.map(s => `
+    <div class="detail-row" style="align-items:flex-start;gap:16px;padding:10px 0">
+      <div style="width:28px;height:28px;background:${s.who==='Human'?'rgba(6,182,212,0.15)':'rgba(124,58,237,0.15)'};border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">${s.icon}</div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+          <span style="font-weight:600;font-size:13px">${s.n}. ${s.title}</span>
+          <span class="badge" style="${s.who==='Human'?'background:rgba(6,182,212,0.1);color:var(--accent)':'background:rgba(124,58,237,0.1);color:var(--primary-light)'}">${s.who}</span>
+        </div>
+        <div class="text-muted text-small">${s.desc}</div>
+      </div>
+    </div>`).join('');
+}
+
+/* ─── Request Detail Drawer ─── */
+async function openDrawer(requestId) {
+  const overlay = document.getElementById('drawer-overlay');
+  const drawer  = document.getElementById('drawer');
+  overlay.style.display = 'block';
+  drawer.classList.add('open');
+
+  document.getElementById('drawer-title').textContent = requestId;
+  document.getElementById('drawer-subtitle').textContent = 'Loading…';
+  document.getElementById('drawer-body').innerHTML = `
+    <div class="skeleton" style="height:120px;margin-bottom:16px;border-radius:10px"></div>
+    <div class="skeleton" style="height:80px;margin-bottom:16px;border-radius:10px"></div>
+    <div class="skeleton" style="height:200px;border-radius:10px"></div>`;
+
+  const [req, auditRes] = await Promise.all([
+    apiFetch(`/requests/${requestId}`),
+    apiFetch(`/requests/${requestId}/audit`)
+  ]);
+
+  if (!req) {
+    document.getElementById('drawer-body').innerHTML = '<div class="text-muted">Could not load request.</div>';
+    return;
+  }
+
+  document.getElementById('drawer-subtitle').textContent = escHtml(req.title);
+
+  const fields = [
+    ['Status',         statusBadge(req.status)],
+    ['Priority',       priorityBadge(req.priority)],
+    ['Service',        req.affected_service || '—'],
+    ['Requester',      req.requester_name || '—'],
+    ['SLA Deadline',   req.sla_deadline ? new Date(req.sla_deadline).toLocaleString() : '—'],
+    ['Feature Branch', req.feature_branch ? `<span class="req-id">${req.feature_branch}</span>` : '—'],
+    ['PR',             req.pr_url ? `<a href="${req.pr_url}" target="_blank" style="color:var(--accent)">#${req.pr_number} ↗</a>` : '—'],
+    ['Staging URL',    req.staging_url ? `<a href="${req.staging_url}" target="_blank" style="color:var(--accent)">Open ↗</a>` : '—'],
+    ['Prod URL',       req.production_url ? `<a href="${req.production_url}" target="_blank" style="color:var(--accent)">Open ↗</a>` : '—'],
+    ['AI Confidence',  req.ai_confidence ? `<span style="color:${req.ai_confidence >= 80 ? 'var(--success)' : 'var(--warning)'}">${req.ai_confidence}%</span>` : '—'],
+    ['Created',        req.created_at ? new Date(req.created_at).toLocaleString() : '—'],
+    ['Updated',        req.updated_at ? new Date(req.updated_at).toLocaleString() : '—'],
+  ];
+
+  const logs = auditRes?.logs || [];
+
+  document.getElementById('drawer-body').innerHTML = `
+    <div class="drawer-section">
+      <div class="drawer-section-title">Request Details</div>
+      ${fields.map(([k, v]) => `
+        <div class="detail-row">
+          <div class="detail-key">${k}</div>
+          <div class="detail-val">${v}</div>
+        </div>`).join('')}
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-section-title">Business Need</div>
+      <div class="text-small text-muted" style="line-height:1.7">${escHtml(req.business_need || '—')}</div>
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-section-title">Expected Behavior</div>
+      <div class="text-small text-muted" style="line-height:1.7">${escHtml(req.expected_behavior || '—')}</div>
+    </div>
+
+    ${req.implementation_plan ? `
+    <div class="drawer-section">
+      <div class="drawer-section-title">Implementation Plan</div>
+      <div class="plan-content">${escHtml(req.implementation_plan)}</div>
+    </div>` : ''}
+
+    ${req.risk_notes ? `
+    <div class="drawer-section">
+      <div class="drawer-section-title">Risk Notes</div>
+      <div class="plan-content">${escHtml(req.risk_notes)}</div>
+    </div>` : ''}
+
+    <div class="drawer-section">
+      <div class="drawer-section-title">Audit Trail (${logs.length} events)</div>
+      <div class="timeline">
+        ${logs.length === 0 ? '<div class="text-small text-muted">No events yet.</div>' :
+          logs.map(l => `
+            <div class="timeline-item">
+              <div class="timeline-time">${relativeTime(l.created_at)}</div>
+              <div class="timeline-text">${l.action}</div>
+              <div class="timeline-actor">${l.actor_type} · ${l.actor_id}</div>
+            </div>`).join('')}
+      </div>
+    </div>
+
+    <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
+      ${req.status === 'submitted' ? `<button class="btn btn-success btn-sm" onclick="quickApprove('${req.request_id}')">✅ Approve</button>` : ''}
+      ${req.pr_url ? `<a href="${req.pr_url}" target="_blank" class="btn btn-secondary btn-sm">🔀 View PR</a>` : ''}
+      <button class="btn btn-secondary btn-sm" onclick="copyToClipboard('${req.request_id}')">📋 Copy ID</button>
+    </div>`;
+}
+
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawer-overlay').style.display = 'none';
+}
+
+async function quickApprove(requestId) {
+  const res = await fetch(`${API}/requests/${requestId}/approve`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ actor_id: 'dashboard-user' })
+  });
+  if (res.ok) {
+    toast('success', '✅ Approved', `${requestId} approved. Analysis agent starting…`);
+    closeDrawer();
+    loadRequests();
+  } else {
+    toast('error', '❌ Failed', 'Could not approve request.');
+  }
+}
+
+/* ─── New Request Modal ─── */
+function openNewRequestModal() {
+  document.getElementById('modal-overlay').style.display = 'block';
+}
+function closeModal() {
+  document.getElementById('modal-overlay').style.display = 'none';
+  document.getElementById('new-request-form').reset();
+}
+
+async function submitNewRequest(evt) {
+  evt.preventDefault();
+  const btn = document.getElementById('submit-btn');
+  btn.textContent = 'Submitting…';
+  btn.disabled = true;
+
+  const body = {
+    title:             document.getElementById('nr-title').value.trim(),
+    business_need:     document.getElementById('nr-business').value.trim(),
+    expected_behavior: document.getElementById('nr-behavior').value.trim(),
+    priority:          document.getElementById('nr-priority').value,
+    affected_service:  document.getElementById('nr-service').value,
+    requester_name:    document.getElementById('nr-name').value.trim(),
+    source:            'dashboard',
+  };
+
+  const res = await fetch(`${API}/requests`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+
+  btn.textContent = 'Submit Request 🚀';
+  btn.disabled = false;
+
+  if (res.ok) {
+    const req = await res.json();
+    toast('success', '🚀 Request Submitted!', `${req.request_id} created successfully.`);
+    closeModal();
+    nav('requests');
+  } else {
+    const err = await res.json().catch(() => ({}));
+    toast('error', '❌ Submission Failed', err.detail || 'Unknown error');
+  }
+}
+
+/* ─── Search ─── */
+let searchDebounce;
+document.getElementById('global-search').addEventListener('input', (e) => {
+  clearTimeout(searchDebounce);
+  const q = e.target.value.trim();
+  if (q.length < 2) return;
+  searchDebounce = setTimeout(async () => {
+    const data = await apiFetch(`/requests/search?q=${encodeURIComponent(q)}`);
+    if (data && data.results) {
+      nav('requests');
+      renderRequestsTable(data.results);
+    }
+  }, 400);
+});
+
+/* ─── Export ─── */
+async function exportAudit() {
+  const url = `${API}/audit/export?format=csv`;
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'audit_log.csv';
+  link.click();
+  toast('info', '⬇ Downloading', 'Audit log CSV export started.');
+}
+
+/* ─── Helpers ─── */
+function statusBadge(status) {
+  const label = (status || 'unknown').replace(/_/g, ' ');
+  return `<span class="badge status-${status}">${label}</span>`;
+}
+
+function priorityBadge(priority) {
+  return `<span class="badge badge-${(priority || 'p2').toLowerCase()}">${priority || '—'}</span>`;
+}
+
+function slaIndicator(deadline, status) {
+  const terminal = ['closed','deployed','rejected'];
+  if (!deadline || terminal.includes(status)) return '<span class="text-muted text-small">—</span>';
+  const now = Date.now();
+  const dl = new Date(deadline).getTime();
+  const hrs = (dl - now) / 3600000;
+  if (hrs < 0) return '<span style="color:var(--danger);font-size:11px">⚠ Overdue</span>';
+  if (hrs < 4) return `<span style="color:var(--warning);font-size:11px">⏰ ${Math.round(hrs)}h left</span>`;
+  return `<span class="text-muted text-small">${Math.round(hrs)}h</span>`;
+}
+
+function relativeTime(iso) {
+  if (!iso) return '—';
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
+function escHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function emptyState(icon, title, desc) {
+  return `<div class="empty-state"><span class="empty-icon">${icon}</span><div class="empty-title">${title}</div><div class="empty-desc">${desc}</div></div>`;
+}
+
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    toast('info', '📋 Copied', text);
+  });
+}
+
+async function apiFetch(path) {
+  try {
+    const res = await fetch(API + path);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+function refreshBadge(count) {
+  const badge = document.getElementById('badge-requests');
+  if (count != null) badge.textContent = count;
+  else apiFetch('/metrics').then(m => { if (m) badge.textContent = m.active || 0; });
+}
+
+/* ─── Toasts ─── */
+function toast(type, title, message, duration = 5000) {
+  const ICONS = { success: '✅', info: 'ℹ️', warning: '⚠️', error: '❌' };
+  const container = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `
+    <div class="toast-icon">${ICONS[type] || 'ℹ️'}</div>
+    <div>
+      <div class="toast-title">${title}</div>
+      ${message ? `<div class="toast-msg">${message}</div>` : ''}
+    </div>
+    <div class="toast-close" onclick="this.closest('.toast').remove()">✕</div>`;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), duration);
+}
+
+/* ─── Init ─── */
+connectWS();
+loadOverview();
+renderDocs();
+</script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+# Virtual Environment
+venv/
+.venv/
+env/
+
+# MongoDB Local Storage
+mongodb_data/
+
+# Sub-projects and test targets
+financial-news-ai/
+plotcode-demo-api/
+Ddubai-project1plotcodeorchestrationsrcworkflows/
+
+# Node.js
+node_modules/
+dist/
+.npm/
+
+# Secrets and local config
+.env
+.env*.local
+*.log
+
+# Editor/OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
