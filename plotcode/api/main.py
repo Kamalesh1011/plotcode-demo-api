@@ -1,8 +1,8 @@
 """
 Vercel Python Serverless Function — Plotcode Backend Entry Point
 
-Located in src/ (not api/) to avoid module name conflict with agents/api.py.
-Vercel detects FastAPI apps in src/index.py automatically.
+Located at api/main.py (Vercel looks for functions in the api/ directory).
+Named main.py (not index.py) to avoid Python module name conflict with agents/api.py.
 
 This file:
   1. Creates a FastAPI app (so Vercel's AST detection finds it)
@@ -25,8 +25,8 @@ async def root_health():
     return {"status": "ok", "service": "plotcode-vercel"}
 
 # ─── Load the agents FastAPI app ─────────────────────────────────────────────
-# Add agents/ to sys.path so `from api import app` finds agents/api.py
-# (not src/api.py or any other api module)
+# Add agents/ to sys.path FIRST so `from api import app` finds agents/api.py
+# (not this api/ directory, since we're named main.py not api.py)
 AGENTS_DIR = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
     '..',
@@ -34,8 +34,9 @@ AGENTS_DIR = os.path.join(
 )
 sys.path.insert(0, AGENTS_DIR)
 
-# Now import the agents app — since agents/ is first in sys.path,
-# `api` resolves to agents/api.py
+# Import the agents app — `api` resolves to agents/api.py because:
+# 1. agents/ is first in sys.path
+# 2. This file is main.py, not api.py, so no self-conflict
 from api import app as agents_app
 
 # Mount the agents app under /api prefix

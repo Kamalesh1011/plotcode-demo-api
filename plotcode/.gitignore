@@ -32,3 +32,5 @@ docker-volumes/
 secrets/
 *.pem
 *.key
+
+.vercel
