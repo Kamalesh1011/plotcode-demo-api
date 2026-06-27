@@ -4,13 +4,13 @@
   "outputDirectory": "frontend/dist",
   "framework": null,
   "functions": {
-    "agents/api.py": {
+    "src/index.py": {
       "memory": 1024,
       "maxDuration": 60
     }
   },
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/agents/api" },
+    { "source": "/api/:path*", "destination": "/src/index.py" },
     { "source": "/(.*\\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot))", "destination": "/$1" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
