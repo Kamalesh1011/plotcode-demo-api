@@ -31,6 +31,7 @@ from fastapi import (
     File,
     HTTPException,
     Query,
+    Request,
     UploadFile,
     WebSocket,
     WebSocketDisconnect,
@@ -84,6 +85,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ─── Strip /api prefix for Vercel deployment ─────────────────────────────────
+# On Vercel, the frontend calls /api/health, /api/auth/login, etc.
+# This middleware strips the /api prefix so FastAPI routes match.
+# On local dev, the Vite proxy already strips /api, so this is a no-op.
+@app.middleware("http")
+async def strip_api_prefix_middleware(request: Request, call_next):
+    path = request.url.path
+    if path.startswith("/api/"):
+        new_path = path[4:] or "/"  # Remove "/api" prefix
+        request.scope["path"] = new_path
+        request.scope["raw_path"] = new_path.encode("utf-8")
+    elif path == "/api":
+        request.scope["path"] = "/"
+        request.scope["raw_path"] = b"/"
+    return await call_next(request)
 
 # ─── Agent Registry ───────────────────────────────────────────────────────────
 
