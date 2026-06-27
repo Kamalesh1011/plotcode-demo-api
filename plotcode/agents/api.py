@@ -742,7 +742,10 @@ async def list_branches(repo_name: str, user: dict = Depends(require_auth)):
     from shared.git_client import get_git_client
     git = get_git_client()
     if git._is_local_fallback():
-        from git import Repo
+        try:
+            from git import Repo
+        except ImportError:
+            raise HTTPException(503, "Git not available on this server. Use GitHub API mode.")
         import os
         local_path = os.path.join(git._workspace, repo_name)
         try:
@@ -771,7 +774,10 @@ async def list_commits(
     from shared.git_client import get_git_client
     git = get_git_client()
     if git._is_local_fallback():
-        from git import Repo
+        try:
+            from git import Repo
+        except ImportError:
+            raise HTTPException(503, "Git not available on this server. Use GitHub API mode.")
         import os
         local_path = os.path.join(git._workspace, repo_name)
         try:

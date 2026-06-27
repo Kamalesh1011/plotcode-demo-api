@@ -30,10 +30,12 @@ _MONGO_URI = os.getenv("MONGODB_URI")
 _MONGO_DB   = os.getenv("MONGODB_DB", "plotcode_db")
 
 if not _MONGO_URI:
-    raise EnvironmentError(
-        "MONGODB_URI is not set. "
-        "Please configure your MongoDB Atlas connection string in .env"
+    import logging
+    logging.warning(
+        "MONGODB_URI is not set. Database calls will fail. "
+        "Configure it in your Vercel environment variables."
     )
+    _MONGO_URI = "mongodb://localhost:27017"  # placeholder to avoid crash
 
 
 # ─── Priority → SLA hours mapping ─────────────────────────────────────────────

@@ -8,7 +8,17 @@ import os
 import shutil
 import random
 from typing import Optional, List, Dict, Any
-from git import Repo, GitCommandError
+
+# GitPython requires the git binary — make it optional so the app
+# doesn't crash on serverless platforms (Vercel) where git may not be installed
+try:
+    from git import Repo, GitCommandError
+    _GIT_AVAILABLE = True
+except (ImportError, Exception):
+    Repo = None
+    GitCommandError = Exception
+    _GIT_AVAILABLE = False
+
 from github import Github, Auth
 from dotenv import load_dotenv
 

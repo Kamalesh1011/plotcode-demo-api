@@ -14,12 +14,23 @@ Vercel Limitations (handled in this setup):
 
 import sys
 import os
+import importlib
 
-# Add the agents directory to Python path so imports work
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'agents'))
+# Add the agents directory to Python path FIRST so `api` resolves to agents/api.py
+# and not this `api/` directory (Vercel function directory)
+AGENTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'agents')
+sys.path.insert(0, AGENTS_DIR)
 
-# Import the FastAPI app
-from api import app as fastapi_app
+# Force Python to find agents/api.py, not the api/ directory
+# We use importlib to load from the specific file path
+spec = importlib.util.spec_from_file_location(
+    "plotcode_api",
+    os.path.join(AGENTS_DIR, "api.py")
+)
+plotcode_api = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(plotcode_api)
+
+fastapi_app = plotcode_api.app
 
 
 # ─── ASGI wrapper that strips /api prefix ────────────────────────────────────
